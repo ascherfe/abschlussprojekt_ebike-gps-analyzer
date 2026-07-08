@@ -2,18 +2,20 @@ import numpy as np
 import pandas as pd
 
 class PhysicsCalculator:
-    def __init__(self, total_mass: float = 100.0, cw: float = 0.9, area: float = 0.6, rho: float = 1.225):
+    def __init__(self, total_mass: float = 100.0, cw: float = 0.9, area: float = 0.6, rho: float = 1.225, cr: float = 0.004):
         """
-        Konstruktor für die physikalischen Konstanten.
+        Konstruktor für die physikalischen Konstanten inklusive Rollwiderstand.
         :param total_mass: Masse von Fahrer + E-Bike in kg (z.B. 100 kg)
         :param cw: Luftwiderstandsbeiwert (Strömungswiderstandskoeffizient)
         :param area: Stirnfläche des Fahrers in m^2
         :param rho: Luftdichte in kg/m^3 (Standard: 1.225 bei Meeresspiegel)
+        :param cr: Rollwiderstandsbeiwert (Standard: 0.004 für glatten Asphalt/Trekkingreifen)
         """
         self.m = total_mass
         self.cw = cw
         self.A = area
         self.rho = rho
+        self.cr = cr  # NEU: Rollwiderstandsbeiwert
         self.g = 9.81 # Erdbeschleunigung in m/s^2
 
     @staticmethod
@@ -63,14 +65,13 @@ class PhysicsCalculator:
                 
                 # 4. Steigung (Winkel phi) bestimmen
                 dh = df.loc[i, 'ele_smoothed'] - df.loc[i-1, 'ele_smoothed']
-                # Steigungswinkel über Geometrie (sin(phi) = dh / ds)
                 if ds > 0:
                     phi = np.arcsin(clamp(dh / ds, -1.0, 1.0))
                 else:
                     phi = 0.0
                 slopes.append(phi)
                 
-                # 5. KRAFT-BERECHNUNG (Freikörperdiagramm aus eurer Aufgabe)
+                # 5. KRAFT-BERECHNUNG (Erweitert um Rollwiderstand)
                 # F_Luft = 0.5 * rho * cw * A * v^2
                 f_air = 0.5 * self.rho * self.cw * self.A * (v**2)
                 # F_Hang = m * g * sin(phi)
@@ -78,8 +79,11 @@ class PhysicsCalculator:
                 # F_Beschleunigung = m * a
                 f_acc = self.m * a
                 
-                # Gesamte Vortriebskraft, die das E-Bike aufbringen muss
-                f_total = f_air + f_slope + f_acc
+                # NEU: F_Roll = cr * m * g * cos(phi)
+                f_roll = self.cr * self.m * self.g * np.cos(phi)
+                
+                # Gesamte Vortriebskraft (inklusive Rollwiderstand!)
+                f_total = f_air + f_slope + f_acc + f_roll
                 f_vortrieb.append(max(0.0, f_total)) # Keine negative Kraft beim Bremsen simulieren
                 
             else:
