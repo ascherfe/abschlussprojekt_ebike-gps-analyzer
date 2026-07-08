@@ -25,11 +25,26 @@ def main():
     print(data.head())
 
     # 2. Physikalische Metriken (v, a, Kraft, Steigung) berechnen
-    calculator = PhysicsCalculator(total_mass=100.0)
+    # Vorher: calculator = PhysicsCalculator(total_mass=100.0)
+    # Nachher (erweitert um den Rollwiderstandsbeiwert):
+    calculator = PhysicsCalculator(total_mass=100.0, cr=0.004)
     data = calculator.calculate_metrics(data)
 
     # 3. Hilfsspalte für die x-Achse: Kumulierte Zeit in Sekunden berechnen
     data['elapsed_time'] = data['delta_t'].cumsum()
+
+    # --- NEU: Berechnung der Höhenmeter & Gesamtzeit ---
+    # Wir nehmen die geglätteten Höhendaten für realistischere Werte ohne Sensorrauschen
+    ele_deltas = data['ele_smoothed'].diff().fillna(0.0)
+    total_ascent = ele_deltas[ele_deltas > 0].sum()   # Alle positiven Änderungen addieren
+    total_descent = ele_deltas[ele_deltas < 0].sum()  # Alle negativen Änderungen addieren
+    
+    total_time_seconds = data['delta_t'].sum()
+    # Umrechnung in Stunden, Minuten und Sekunden für eine schöne Ausgabe
+    hours = int(total_time_seconds // 3600)
+    minutes = int((total_time_seconds % 3600) // 60)
+    seconds = int(total_time_seconds % 60)
+    # ----------------------------------------------------
 
     # Instanziierung der Komponenten des Antriebsstrangs
     motor = Motor(
@@ -57,7 +72,7 @@ def main():
 
     results = []
 
-    # Simulationsschleife über den gesamten Fahrtverlauf (Jetzt garantiert korrekt eingerückt!)
+    # Simulationsschleife über den gesamten Fahrtverlauf
     for i in range(1, len(data)):
         force = data[force_column].iloc[i]
         velocity = data[velocity_column].iloc[i]
@@ -116,9 +131,12 @@ def main():
     print("\n--- Simulation erfolgreich abgeschlossen ---")
     print(f"Ergebnisse gespeichert unter: {output_path}")
 
-    # Aggregierte Kennzahlen im Terminal ausgeben
+    # Aggregierte Kennzahlen im Terminal ausgeben (Erweitert!)
     print(f"Zurückgelegte Gesamtstrecke: {data['distance_delta'].sum() / 1000:.2f} km")
-    print(f"Maximale Leistung: {results_df['power'].max():.2f} W")
+    print(f"Gesamte Fahrtzeit:          {hours:02d}:{minutes:02d}:{seconds:02d} (hh:mm:ss)")
+    print(f"Kumulierter Anstieg (↑):    {total_ascent:.1f} m")
+    print(f"Kumulierter Abstieg (↓):    {abs(total_descent):.1f} m")
+    print(f"Maximale Motorleistung:     {results_df['power'].max():.2f} W")
     print(f"Durchschnittsgeschwindigkeit: {results_df['velocity'].mean() * 3.6:.2f} km/h")
 
     # Diagramme generieren
