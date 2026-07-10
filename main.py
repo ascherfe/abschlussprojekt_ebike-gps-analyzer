@@ -146,24 +146,9 @@ def main():
     print(f"Durchschnittsgeschwindigkeit: {results_df['velocity'].mean() * 3.6:.2f} km/h")
 
     # Diagramme generieren
-    plot_results(results_df)
-    plotter = Plotter()
+    plot_results(results_df, data)
 
-    #Höhenprofil
-    plotter.plot_height_profile(
-    data["distance"],
-    data["ele_smoothed"]
-    )
-    
-    #Höhenprofil mit farbiger Steigung
-    plotter.plot_colored_gradient(
-    data["distance"],
-    data["ele_smoothed"],
-    data["gradient_percent"]
-    )
-
-
-def plot_results(results):
+def plot_results(results, data):
     plt.figure()
     plt.plot(results["time"], results["velocity"] * 3.6, color="blue")
     plt.xlabel("Zeit / s")
@@ -195,6 +180,21 @@ def plot_results(results):
     plt.grid(True)
     
     plt.show()
+
+    plotter = Plotter()
+
+    # Höhenprofil
+    plotter.plot_height_profile(
+        data["distance"],
+        data["ele_smoothed"]
+    )
+
+    # Höhenprofil mit farbiger Steigung
+    plotter.plot_colored_gradient(
+        data["distance"],
+        data["ele_smoothed"],
+        data["gradient_percent"]
+    )
 
 
 if __name__ == "__main__":
