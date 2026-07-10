@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+from matplotlib.collections import LineCollection
+from matplotlib.colors import Normalize
 
 
 class Plotter:
@@ -133,49 +135,71 @@ class Plotter:
 
     def plot_colored_gradient(self, distance, height, gradient):
 
-        plt.figure(figsize=(12, 5))
+    # Pandas-Serien in NumPy-Arrays umwandeln
+        distance = np.asarray(distance, dtype=float) / 1000
+        height = np.asarray(height, dtype=float)
+        gradient = np.asarray(gradient, dtype=float)
 
-        gradient = np.asarray(gradient)
+    # Ungültige Werte ersetzen
+        gradient = np.nan_to_num(
+            gradient,
+            nan=0.0,
+            posinf=15.0,
+            neginf=-15.0
+        )
 
-        for i in range(len(distance) - 1):
+    # Punkte des Höhenprofils erzeugen
+        points = np.column_stack((distance, height))
 
-            if gradient[i] > 5:
+    # Einzelne Linienabschnitte erzeugen
+        segments = np.stack(
+            (points[:-1], points[1:]),
+            axis=1
+        )
 
-                color = "red"
+        norm = Normalize(vmin=-15, vmax=15)
 
-            elif gradient[i] > 2:
+        colored_line = LineCollection(
+            segments,
+            cmap="coolwarm",
+            norm=norm,
+            linewidth=3
+        )
 
-                color = "orange"
+        colored_line.set_array(gradient[:-1])
 
-            elif gradient[i] > -2:
+        fig, ax = plt.subplots(figsize=(12, 5))
 
-                color = "green"
+        ax.add_collection(colored_line)
 
-            elif gradient[i] > -5:
+        ax.set_xlim(distance.min(), distance.max())
 
-                color = "cyan"
+        hoehen_abstand = max((height.max() - height.min()) * 0.05, 5)
 
-            else:
+        ax.set_ylim(
+            height.min() - hoehen_abstand,
+            height.max() + hoehen_abstand
+        )
 
-                color = "blue"
+        ax.set_title("Höhenprofil mit Steigung")
+        ax.set_xlabel("Distanz / km")
+        ax.set_ylabel("Höhe / m")
+        ax.grid(True, alpha=0.3)
 
-            plt.plot(
-                distance[i:i + 2],
-                height[i:i + 2],
-                color=color,
-                linewidth=2
-            )
+        colorbar = fig.colorbar(
+            colored_line,
+            ax=ax,
+            pad=0.02
+        )
 
-        plt.title("Höhenprofil mit Steigung")
-
-        plt.xlabel("Strecke [m]")
-
-        plt.ylabel("Höhe [m]")
-
-        plt.grid(True)
+        colorbar.set_label("Steigung / %")
 
         plt.tight_layout()
 
-        plt.savefig(self.output_dir / "hoehenprofil_steigung.png")
+        plt.savefig(
+            self.output_dir / "hoehenprofil_steigung.png",
+            dpi=300,
+            bbox_inches="tight"
+        )
 
         plt.show()

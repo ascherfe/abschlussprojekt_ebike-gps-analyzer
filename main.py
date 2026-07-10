@@ -1,7 +1,9 @@
 import sys
 from pathlib import Path
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
+from src.plots import Plotter
 
 # Fügt den src-Ordner zum Systempfad hinzu, damit Imports unter Windows stabil laufen
 BASE_DIR = Path(__file__).resolve().parent
@@ -32,6 +34,10 @@ def main():
 
     # 3. Hilfsspalte für die x-Achse: Kumulierte Zeit in Sekunden berechnen
     data['elapsed_time'] = data['delta_t'].cumsum()
+    data["distance"] = data["distance_delta"].cumsum()
+
+    # Steigungswinkel in Prozent umrechnen
+    data["gradient_percent"] = np.tan(data["slope_angle"]) * 100
 
     # --- NEU: Berechnung der Höhenmeter & Gesamtzeit ---
     # Wir nehmen die geglätteten Höhendaten für realistischere Werte ohne Sensorrauschen
@@ -92,7 +98,7 @@ def main():
         else:
             power = raw_power
 
-        # Akku-Simulation: Nur entladen, wenn noch Ladung da ist, um Spam zu vermeiden
+        # Akku-Simulation: Nur entladen, wenn noch Ladung da ist
         if lipo.discharge(0, 0) > 0:  
             soc_lipo = lipo.discharge(current, dt)
         else:
@@ -120,7 +126,7 @@ def main():
             "voltage_nmc": voltage_nmc
         })
 
-    # Ergebnisse in DataFrame gießen
+    # Ergebnisse in DataFrame
     results_df = pd.DataFrame(results)
 
     # Berechnete Daten strukturiert abspeichern
@@ -141,6 +147,20 @@ def main():
 
     # Diagramme generieren
     plot_results(results_df)
+    plotter = Plotter()
+
+    #Höhenprofil
+    plotter.plot_height_profile(
+    data["distance"],
+    data["ele_smoothed"]
+    )
+    
+    #Höhenprofil mit farbiger Steigung
+    plotter.plot_colored_gradient(
+    data["distance"],
+    data["ele_smoothed"],
+    data["gradient_percent"]
+    )
 
 
 def plot_results(results):
