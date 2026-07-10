@@ -55,20 +55,20 @@ def main():
     # Instanziierung der Komponenten des Antriebsstrangs
     motor = Motor(
         wheel_diameter_inch=27,
-        motor_constant=1.5
+        motor_constant=4.5
     )
 
     lipo = LiPoBattery(
         cells_series=10,
-        cells_parallel=1,
-        capacity_ah=10,
+        cells_parallel=3,   
+        capacity_ah=12,     
         initial_soc=1.0
     )
 
     nmc = NMCBattery(
         cells_series=10,
-        cells_parallel=1,
-        capacity_ah=10,
+        cells_parallel=3,  
+        capacity_ah=16,     
         initial_soc=1.0
     )
 
@@ -179,8 +179,8 @@ def plot_results(results):
     plt.grid(True)
 
     plt.figure()
-    plt.plot(results["time"], results["soc_lipo"] * 100, label="LiPo", color="red")
-    plt.plot(results["time"], results["soc_nmc"] * 100, label="NMC", color="green")
+    plt.plot(results["time"], results["soc_lipo"] * 100, label="LiPo", color="red", linewidth=2)
+    plt.plot(results["time"], results["soc_nmc"] * 100, label="NMC", color="green", linewidth=2)
     plt.xlabel("Zeit / s")
     plt.ylabel("Ladezustand (SOC) / %")
     plt.title("Akkuladestand im Vergleich")
