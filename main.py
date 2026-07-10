@@ -26,31 +26,38 @@ def main():
     print("\nCSV erfolgreich eingelesen und vorbereitet (Vorschau):")
     print(data.head())
 
-    # 2. Physikalische Metriken (v, a, Kraft, Steigung) berechnen
-    # Vorher: calculator = PhysicsCalculator(total_mass=100.0)
-    # Nachher (erweitert um den Rollwiderstandsbeiwert):
+    # 2. Physikalische Metriken initialisieren
     calculator = PhysicsCalculator(total_mass=100.0, cr=0.004)
-    data = calculator.calculate_metrics(data)
+    
+    # --- NEU: Reale Wetterdaten basierend auf dem ersten CSV-Eintrag live abrufen ---
+    try:
+        start_lat = data['lat'].iloc[0]
+        start_lon = data['lon'].iloc[0]
+        start_time = data['timestamp'].iloc[0]
+        real_wind_speed, real_wind_dir = calculator.fetch_real_weather_data(start_lat, start_lon, start_time)
+    except Exception as e:
+        print(f"Hinweis: Konnte Startdaten für Wetter nicht automatisch lesen ({e}). Nutze Standardwerte.")
+        real_wind_speed, real_wind_dir = 0.0, 0.0
 
-    # 3. Hilfsspalte für die x-Achse: Kumulierte Zeit in Sekunden berechnen
+    # Metriken mit den live gezogenen Wetterdaten berechnen!
+    data = calculator.calculate_metrics(data, wind_speed=real_wind_speed, wind_direction=real_wind_dir)
+
+    # 3. Hilfsspalte für die x-Achse & Distanzen berechnen
     data['elapsed_time'] = data['delta_t'].cumsum()
     data["distance"] = data["distance_delta"].cumsum()
 
     # Steigungswinkel in Prozent umrechnen
     data["gradient_percent"] = np.tan(data["slope_angle"]) * 100
 
-    # --- NEU: Berechnung der Höhenmeter & Gesamtzeit ---
-    # Wir nehmen die geglätteten Höhendaten für realistischere Werte ohne Sensorrauschen
+    # Berechnung der Höhenmeter & Gesamtzeit
     ele_deltas = data['ele_smoothed'].diff().fillna(0.0)
     total_ascent = ele_deltas[ele_deltas > 0].sum()   # Alle positiven Änderungen addieren
     total_descent = ele_deltas[ele_deltas < 0].sum()  # Alle negativen Änderungen addieren
     
     total_time_seconds = data['delta_t'].sum()
-    # Umrechnung in Stunden, Minuten und Sekunden für eine schöne Ausgabe
     hours = int(total_time_seconds // 3600)
     minutes = int((total_time_seconds % 3600) // 60)
     seconds = int(total_time_seconds % 60)
-    # ----------------------------------------------------
 
     # Instanziierung der Komponenten des Antriebsstrangs
     motor = Motor(
@@ -137,7 +144,7 @@ def main():
     print("\n--- Simulation erfolgreich abgeschlossen ---")
     print(f"Ergebnisse gespeichert unter: {output_path}")
 
-    # Aggregierte Kennzahlen im Terminal ausgeben (Erweitert!)
+    # Aggregierte Kennzahlen im Terminal ausgeben
     print(f"Zurückgelegte Gesamtstrecke: {data['distance_delta'].sum() / 1000:.2f} km")
     print(f"Gesamte Fahrtzeit:          {hours:02d}:{minutes:02d}:{seconds:02d} (hh:mm:ss)")
     print(f"Kumulierter Anstieg (↑):    {total_ascent:.1f} m")
@@ -149,17 +156,17 @@ def main():
     plot_results(results_df)
     plotter = Plotter()
 
-    #Höhenprofil
+    # Höhenprofil
     plotter.plot_height_profile(
-    data["distance"],
-    data["ele_smoothed"]
+        data["distance"],
+        data["ele_smoothed"]
     )
     
-    #Höhenprofil mit farbiger Steigung
+    # Höhenprofil mit farbiger Steigung
     plotter.plot_colored_gradient(
-    data["distance"],
-    data["ele_smoothed"],
-    data["gradient_percent"]
+        data["distance"],
+        data["ele_smoothed"],
+        data["gradient_percent"]
     )
 
 
@@ -172,15 +179,16 @@ def plot_results(results):
     plt.grid(True)
 
     plt.figure()
-    plt.plot(results["time"], results["power"], color="orange")
+    plt.plot(results["time"], Antiquated_power := results["power"], color="orange")
     plt.xlabel("Zeit / s")
     plt.ylabel("Leistung / W")
     plt.title("Benötigte Motorleistung über die Zeit")
     plt.grid(True)
 
     plt.figure()
-    plt.plot(results["time"], results["soc_lipo"] * 100, label="LiPo", color="red", linewidth=2)
-    plt.plot(results["time"], results["soc_nmc"] * 100, label="NMC", color="green", linewidth=2)
+    # Der LiPo wird dicker gezeichnet, der NMC leicht gestrichelt darübergelegt, um optische Unterschiede hervorzuheben
+    plt.plot(results["time"], results["soc_lipo"] * 100, label="LiPo (12 Ah)", color="red", linewidth=2.5)
+    plt.plot(results["time"], results["soc_nmc"] * 100, label="NMC (16 Ah)", color="green", linestyle="--", linewidth=2)
     plt.xlabel("Zeit / s")
     plt.ylabel("Ladezustand (SOC) / %")
     plt.title("Akkuladestand im Vergleich")
