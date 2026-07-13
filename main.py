@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.plots import Plotter
 
-# Fügt den src-Ordner zum Systempfad hinzu, damit Imports unter Windows stabil laufen
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR / "src"))
 
@@ -29,7 +28,7 @@ def main():
     # 2. Physikalische Metriken initialisieren
     calculator = PhysicsCalculator(total_mass=100.0, cr=0.004)
     
-    # --- NEU: Reale Wetterdaten basierend auf dem ersten CSV-Eintrag live abrufen ---
+    # Reale Wetterdaten basierend auf dem ersten CSV-Eintrag live abrufen
     try:
         start_lat = data['lat'].iloc[0]
         start_lon = data['lon'].iloc[0]
