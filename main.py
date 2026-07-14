@@ -366,15 +366,6 @@ def plot_results(results, data, wind_speed, wind_dir):
         wind_dir
     )
 
-    # Farbkodierte 3D-Streckenkarte
-    plotter.plot_3d_route_with_wind(
-        data["east"],
-        data["north"],
-        data["ele_smoothed"],
-        data["heading"],
-        wind_speed,
-        wind_dir
-    )
 
     # Bereits vom Plotter gespeicherte Diagramme ergänzen.
     # Die Dateinamen müssen mit den Namen in plots.py übereinstimmen.
@@ -384,7 +375,6 @@ def plot_results(results, data, wind_speed, wind_dir):
     plots_directory / "wind_verlauf_zeit.png",
     plots_directory / "route_3d_wind_farbcodiert.png",
     plots_directory / "parameter_study_result.png",
-    plots_directory / "route_3d.png",
     ]
 
     for path in additional_plot_paths:
