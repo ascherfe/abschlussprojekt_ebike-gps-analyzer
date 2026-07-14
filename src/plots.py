@@ -150,6 +150,7 @@ class Plotter:
         plt.show()
 
     # --- METHODE 3 (Die farbkodierte 3D-Route deines Kollegen) ---
+    # --- METHODE 3 (Die farbkodierte 3D-Route deines Kollegen) ---
     def plot_3d_route_with_wind(self, east, north, height, heading, real_wind_speed, real_wind_dir):
         """Zeichnet die 3D-Route deines Kollegen, gefärbt nach der Windauswirkung."""
         fig = plt.figure(figsize=(11, 8))
@@ -158,6 +159,7 @@ class Plotter:
         x = np.asarray(east, dtype=float)
         y = np.asarray(north, dtype=float)
         z = np.asarray(height, dtype=float)
+        heading_array = np.asarray(heading, dtype=float)  # <-- HIER: Saubere Definition für die Berechnung!
         
         # Berechnung der Windbelastung für jedes Segment
         angle_diff = np.radians(heading_array - real_wind_dir)
