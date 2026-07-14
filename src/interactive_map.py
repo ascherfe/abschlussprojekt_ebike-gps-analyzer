@@ -105,69 +105,50 @@ def calculate_headings_simple(lat_vals, lon_vals):
     return headings
 
 
-def plot_3d_route_with_wind(
-    east_values,
-    north_values,
-    elevation_values,
-    headings,
-    real_wind_speed,
-    real_wind_dir
-):
-    OUTPUT_PATH.parent.mkdir(
-        parents=True,
-        exist_ok=True
-    )
-
-    figure = plt.figure(figsize=(11, 8))
-    axis = figure.add_subplot(
-        111,
-        projection="3d"
-    )
-
-    x = np.array(east_values)
-    y = np.array(north_values)
-    z = np.array(elevation_values)
-    h = np.array(headings)
-
-    # Physikalische Windbelastung für jedes Wegsegment berechnen
-    angle_diff = np.radians(h - real_wind_dir)
-    wind_impact = (real_wind_speed * np.cos(angle_diff)) * 3.6
-
-    # 3D Segmente bauen
-    points = np.array([x, y, z]).T.reshape(-1, 1, 3)
-    segments = np.concatenate([points[:-1], points[1:]], axis=1)
-
-    # Farbkarte laden (Grün = Rückenwind, Rot = Gegenwind)
-    cmap = plt.get_cmap('RdYlGn_r')
-    
-    lc = Line3DCollection(segments, cmap=cmap, linewidths=3.5)
-    lc.set_array(wind_impact[:-1])
-    line = axis.add_collection3d(lc)
-
-    # Start- und Endpunkte markieren
-    axis.scatter(x[0], y[0], z[0], color="blue", s=50, label="Start", zorder=5)
-    axis.scatter(x[-1], y[-1], z[-1], color="orange", s=50, label="Ende", zorder=5)
-
-    axis.set_xlim(x.min(), x.max())
-    axis.set_ylim(y.min(), y.max())
-    axis.set_zlim(z.min(), z.max())
-
-    axis.set_title("3D-Streckenprofil mit farbkodiertem Windeinfluss", fontweight='bold', pad=20)
-    axis.set_xlabel("Westen ← Entfernung Ost [m] → Osten")
-    axis.set_ylabel("Süden ← Entfernung Nord [m] → Norden")
-    axis.set_zlabel("Höhe [m]")
-    axis.legend()
-
-    # Legenden-Farbbalken hinzufügen
-    cbar = figure.colorbar(line, ax=axis, pad=0.1, shrink=0.55)
-    cbar.set_label("Effektive Windkomponente / km/h (Rot = Gegenwind)")
-
-    plt.tight_layout()
-    plt.savefig(
-        OUTPUT_PATH,
-        dpi=300
-    )
-    plt.show()
+def plot_3d_route_with_wind(self, east, north, height, heading, real_wind_speed, real_wind_dir):
+        """Zeichnet die 3D-Route deines Kollegen, gefärbt nach der Windauswirkung."""
+        fig = plt.figure(figsize=(11, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        x = np.asarray(east, dtype=float)
+        y = np.asarray(north, dtype=float)
+        z = np.asarray(height, dtype=float)
+        heading_array = np.asarray(heading, dtype=float)  # <-- HIER: Saubere Definition für die Berechnung!
+        
+        # Berechnung der Windbelastung für jedes Segment
+        angle_diff = np.radians(heading_array - real_wind_dir)
+        wind_impact = (real_wind_speed * np.cos(angle_diff)) * 3.6
+        
+        points = np.array([x, y, z]).T.reshape(-1, 1, 3)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        
+        # Farbkarte sauber laden (Grün = Rückenwind, Rot = Gegenwind)
+        cmap = plt.get_cmap('RdYlGn_r')
+        
+        lc = Line3DCollection(segments, cmap=cmap, linewidths=3.5)
+        lc.set_array(wind_impact[:-1])
+        line = ax.add_collection3d(lc)
+        
+        # Start und Endpunkt als Markierung
+        ax.scatter(x[0], y[0], z[0], color="blue", s=50, label="Start", zorder=5)
+        ax.scatter(x[-1], y[-1], z[-1], color="orange", s=50, label="Ende", zorder=5)
+        
+        ax.set_xlim(x.min(), x.max())
+        ax.set_ylim(y.min(), y.max())
+        ax.set_zlim(z.min(), z.max())
+        
+        ax.set_title("3D-Streckenprofil mit farbkodiertem Windeinfluss", fontweight='bold', pad=20)
+        ax.set_xlabel("Westen ← Entfernung Ost [m] → Osten")
+        ax.set_ylabel("Süden ← Entfernung Nord [m] → Norden")
+        ax.set_zlabel("Höhe [m]")
+        ax.legend()
+        
+        cbar = fig.colorbar(line, ax=ax, pad=0.1, shrink=0.55)
+        cbar.set_label("Effektive Windkomponente / km/h (Rot = Gegenwind)")
+        
+        plt.tight_layout()
+        plt.savefig(self.output_dir / "route_3d_wind_farbcodiert.png", dpi=300)
+        plt.show()
 
 
 def main():
