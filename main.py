@@ -5,6 +5,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from src.plots import Plotter
+from src.pdf import PDFReport
 
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR / "src"))
@@ -164,57 +165,233 @@ def main():
     print(f"Gesamte Fahrtzeit:          {hours:02d}:{minutes:02d}:{seconds:02d}")
 
     # Diagramme generieren (Wetter-Parameter übergeben!)
-    plot_results(results_df, data, real_wind_speed, real_wind_dir)
+        # Diagramme erstellen und deren Dateipfade zurückgeben
+    plot_paths = plot_results(
+        results_df,
+        data,
+        real_wind_speed,
+        real_wind_dir
+    )
+
+    # Kennwerte für die PDF berechnen
+    total_distance_km = data["distance_delta"].sum() / 1000
+    average_speed_kmh = results_df["velocity"].mean() * 3.6
+    maximum_speed_kmh = results_df["velocity"].max() * 3.6
+
+    average_power = results_df["power"].mean()
+    maximum_power = results_df["power"].max()
+
+    average_current = results_df["motor_current"].mean()
+    maximum_current = results_df["motor_current"].max()
+
+    minimum_elevation = data["ele_smoothed"].min()
+    maximum_elevation = data["ele_smoothed"].max()
+    elevation_difference = maximum_elevation - minimum_elevation
+
+    final_lipo_soc = results_df["soc_lipo"].iloc[-1] * 100
+    final_nmc_soc = results_df["soc_nmc"].iloc[-1] * 100
+
+    # Alle Werte für die Übersichtsseite der PDF
+    pdf_results = {
+        "Anzahl GPS-Punkte": len(data),
+        "Gesamtstrecke": f"{total_distance_km:.2f} km",
+        "Gesamte Fahrtzeit": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+        "Durchschnittsgeschwindigkeit": f"{average_speed_kmh:.2f} km/h",
+        "Maximale Geschwindigkeit": f"{maximum_speed_kmh:.2f} km/h",
+        "Minimale Höhe": f"{minimum_elevation:.2f} m",
+        "Maximale Höhe": f"{maximum_elevation:.2f} m",
+        "Höhenunterschied": f"{elevation_difference:.2f} m",
+        "Positive Höhenmeter": f"{total_ascent:.2f} m",
+        "Negative Höhenmeter": f"{abs(total_descent):.2f} m",
+        "Durchschnittliche Motorleistung": f"{average_power:.2f} W",
+        "Maximale Motorleistung": f"{maximum_power:.2f} W",
+        "Durchschnittlicher Motorstrom": f"{average_current:.2f} A",
+        "Maximaler Motorstrom": f"{maximum_current:.2f} A",
+        "LiPo-Ladezustand am Ende": f"{final_lipo_soc:.2f} %",
+        "NMC-Ladezustand am Ende": f"{final_nmc_soc:.2f} %",
+        "Reale Windgeschwindigkeit": f"{real_wind_speed:.2f} m/s",
+        "Reale Windrichtung": f"{real_wind_dir:.2f}°",
+    }
+
+    # Speicherort des PDF-Berichts
+    pdf_output_path = (
+        BASE_DIR
+        / "data"
+        / "processed"
+        / "ebike_ergebnisbericht.pdf"
+    )
+
+    # PDF erstellen
+    report = PDFReport(pdf_output_path)
+
+    report.create_report(
+        results=pdf_results,
+        plot_paths=plot_paths
+    )
+
+    print("\n--- PDF-Bericht erfolgreich erstellt ---")
+    print(f"PDF-Datei: {pdf_output_path}")
+
+
 
 
 def plot_results(results, data, wind_speed, wind_dir):
-    plt.figure()
-    plt.plot(results["time"], results["velocity"] * 3.6, color="blue")
+    """
+    Erstellt alle Diagramme, speichert sie als PNG und gibt deren Pfade zurück.
+    """
+
+    plots_directory = BASE_DIR / "data" / "processed" / "plots"
+    plots_directory.mkdir(parents=True, exist_ok=True)
+
+    plot_paths = []
+
+    # ---------------------------------------------------------
+    # 1. Geschwindigkeit über die Zeit
+    # ---------------------------------------------------------
+    velocity_plot_path = plots_directory / "geschwindigkeit.png"
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        results["time"],
+        results["velocity"] * 3.6,
+        color="blue"
+    )
     plt.xlabel("Zeit / s")
     plt.ylabel("Geschwindigkeit / km/h")
     plt.title("Geschwindigkeit über die Zeit")
     plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(velocity_plot_path, dpi=200)
+    plt.close()
 
-    plt.figure()
-    plt.plot(results["time"], results["power"], color="orange")
+    plot_paths.append(velocity_plot_path)
+
+    # ---------------------------------------------------------
+    # 2. Motorleistung über die Zeit
+    # ---------------------------------------------------------
+    power_plot_path = plots_directory / "motorleistung.png"
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        results["time"],
+        results["power"],
+        color="orange"
+    )
     plt.xlabel("Zeit / s")
     plt.ylabel("Leistung / W")
     plt.title("Benötigte Motorleistung über die Zeit")
     plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(power_plot_path, dpi=200)
+    plt.close()
 
-    plt.figure()
-    plt.plot(results["time"], results["soc_lipo"] * 100, label="LiPo (12 Ah)", color="red", linewidth=2.5)
-    plt.plot(results["time"], results["soc_nmc"] * 100, label="NMC (16 Ah)", color="green", linestyle="--", linewidth=2)
+    plot_paths.append(power_plot_path)
+
+    # ---------------------------------------------------------
+    # 3. Akkuladestand im Vergleich
+    # ---------------------------------------------------------
+    battery_plot_path = plots_directory / "akkuladestand.png"
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        results["time"],
+        results["soc_lipo"] * 100,
+        label="LiPo (12 Ah)",
+        color="red",
+        linewidth=2.5
+    )
+    plt.plot(
+        results["time"],
+        results["soc_nmc"] * 100,
+        label="NMC (16 Ah)",
+        color="green",
+        linestyle="--",
+        linewidth=2
+    )
     plt.xlabel("Zeit / s")
     plt.ylabel("Ladezustand (SOC) / %")
     plt.title("Akkuladestand im Vergleich")
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(battery_plot_path, dpi=200)
+    plt.close()
 
-    plt.figure()
-    plt.plot(results["time"], results["motor_current"], color="purple")
+    plot_paths.append(battery_plot_path)
+
+    # ---------------------------------------------------------
+    # 4. Motorstrom über die Zeit
+    # ---------------------------------------------------------
+    current_plot_path = plots_directory / "motorstrom.png"
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(
+        results["time"],
+        results["motor_current"],
+        color="purple"
+    )
     plt.xlabel("Zeit / s")
     plt.ylabel("Motorstrom / A")
     plt.title("Motorstrom über die Zeit")
     plt.grid(True)
-    
-    plt.show()
+    plt.tight_layout()
+    plt.savefig(current_plot_path, dpi=200)
+    plt.close()
 
-    # --- Aufruf des Plotters für die erweiterten Diagramme ---
+    plot_paths.append(current_plot_path)
+
+    # ---------------------------------------------------------
+    # Erweiterte Diagramme aus plots.py
+    # ---------------------------------------------------------
     plotter = Plotter()
 
     # Höhenprofil
-    plotter.plot_height_profile(data["distance"], data["ele_smoothed"])
+    plotter.plot_height_profile(
+        data["distance"],
+        data["ele_smoothed"]
+    )
 
     # Höhenprofil mit farbiger Steigung
-    plotter.plot_colored_gradient(data["distance"], data["ele_smoothed"], data["gradient_percent"])
+    plotter.plot_colored_gradient(
+        data["distance"],
+        data["ele_smoothed"],
+        data["gradient_percent"]
+    )
 
-    # NEU: Zeitverlauf des Windeinflusses (Gegenwind/Rückenwind)
-    plotter.plot_wind_impact_timeline(results["time"], data["heading"].iloc[1:], wind_speed, wind_dir)
+    # Zeitverlauf des Windeinflusses
+    plotter.plot_wind_impact_timeline(
+        results["time"],
+        data["heading"].iloc[1:],
+        wind_speed,
+        wind_dir
+    )
 
-    # NEU: Farbkodierte 3D-Streckenkarte
-    plotter.plot_3d_route_with_wind(data["east"], data["north"], data["ele_smoothed"], data["heading"], wind_speed, wind_dir)
 
+    # Bereits vom Plotter gespeicherte Diagramme ergänzen.
+    # Die Dateinamen müssen mit den Namen in plots.py übereinstimmen.
+    additional_plot_paths = [
+    plots_directory / "hoehenprofil.png",
+    plots_directory / "hoehenprofil_steigung.png",
+    plots_directory / "wind_verlauf_zeit.png",
+    plots_directory / "route_3d_wind_farbcodiert.png",
+    plots_directory / "parameter_study_result.png",
+    ]
+
+    for path in additional_plot_paths:
+        if path.exists():
+            plot_paths.append(path)
+        else:
+            print(
+                f"Hinweis: Das Diagramm wurde nicht für die PDF gefunden: "
+                f"{path.name}"
+            )
+
+    print("\n--- Diagramme erfolgreich gespeichert ---")
+
+    for path in plot_paths:
+        print(f"Diagramm: {path}")
+
+    return plot_paths
 
 if __name__ == "__main__":
     main()
