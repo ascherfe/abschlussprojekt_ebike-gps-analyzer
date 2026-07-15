@@ -1,3 +1,7 @@
-**/__pycache__/
+# Lokaler Cache der Wetter-API
+.cache.sqlite
+.cache/
+
+# Python-Schnittstellen-Ordner
+__pycache__/
 *.pyc
-.venv/
