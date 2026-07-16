@@ -14,7 +14,7 @@ Für die Ausführung werden benötigt:
 
 - Python 3.10 oder neuer
 - pip
-- Eine Python-Entwicklungsumgebung (z.B. Visual Studio Code)
+- Python-IDE (z.B. Visual Studio Code)
 
 ---
 
@@ -22,18 +22,25 @@ Für die Ausführung werden benötigt:
 
 Es wird empfohlen, das Projekt in einer virtuellen Umgebung (venv) auszuführen, um Paketkonflikte zu vermeiden. 
 
-1. Repository klonen und den Projektordner im Terminal der IDE öffnen
+1. Repository klonen und den Projektordner im Terminal der IDE öffnen. Alternativ über "Code" auf Github den Zip-Ordner des Projektes downloaden und lokal entpacken.
+
+2. In der IDE den Projektordner öffnen & ein Terminal öffnen
 
 2. Virtuelle Umgebung erstellen & aktivieren:
 
-```bash
+```powershell
 python -m venv .venv
 .\.venv\Scripts\activate
 ```
+Die Powershell blockiert standardmäßig das Aktivieren von Umgebungen. Für diesen Fall wendet man diesen Behehl an:
 
-3 Alle benötigten Bibliotheken aus der requirements.txt-Datei installieren:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+```
 
-```bash
+4. Alle benötigten Bibliotheken aus der requirements.txt-Datei installieren:
+
+```powershell
 pip install -r requirements.txt
 ```
 
