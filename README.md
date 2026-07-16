@@ -109,6 +109,7 @@ data/processed/ebike_ergebnisbericht.pdf
 - Die Eingabedatei muss sich im Ordner `data/raw` befinden.
 - Die erzeugten Diagramme und Berichte werden bei einer erneuten Ausführung überschrieben.
 - Um im Ergebnisbericht auch das Plot der Parameterstudie einzufügen, muss die Parameterstudie vor der Main-Datei ausgeführt werden.
+- Die Werte der Batterien wurden verändert, um eine bessere übersicht über die Unterschiede der beiden Kennlinien zu erreichen.
 
 ---
 
